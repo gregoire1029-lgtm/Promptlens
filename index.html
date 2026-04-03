@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PromptLens — AI Prompt Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f2eb;
+      --surface: #ffffff;
+      --border: #ddd9d0;
+      --ink: #1a1814;
+      --muted: #8a8579;
+      --accent: #c4390a;
+      --accent2: #2a6e4a;
+      --accent3: #1d4fa8;
+      --tag-bg: #f0ece3;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Geist Mono', monospace;
+      min-height: 100vh;
+      padding: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(0,0,0,0.04) 28px),
+        repeating-linear-gradient(90deg, transparent, transparent 27px, rgba(0,0,0,0.02) 28px);
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 2px solid var(--ink);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .logo-name {
+      font-family: 'Instrument Serif', serif;
+      font-size: 1.6rem;
+      letter-spacing: -0.5px;
+      color: var(--ink);
+    }
+
+    .logo-tag {
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+
+    .header-pill {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 56px 24px 100px;
+    }
+
+    .hero {
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      line-height: 1.1;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 480px;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── API Key section ── */
+    .api-section {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .api-section label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .api-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .api-row input {
+      flex: 1;
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.8rem;
+      background: var(--tag-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .api-row input:focus { border-color: var(--ink); }
+
+    .api-row input::placeholder { color: var(--muted); }
+
+    .btn-save {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 10px 18px;
+      background: var(--ink);
+      color: var(--bg);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      transition: opacity 0.2s;
+    }
+
+    .btn-save:hover { opacity: 0.82; }
+
+    .api-hint {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .api-hint a { color: var(--accent3); }
+
+    /* ── Input area ── */
+    .input-section {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .input-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .input-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .char-count {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      background: transparent;
+      border: none;
+      padding: 20px;
+      color: var(--ink);
+      resize: vertical;
+      outline: none;
+    }
+
+    textarea::placeholder { color: #bbb5a9; }
+
+    .input-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--tag-bg);
+    }
+
+    .example-prompts {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .example-btn {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.65rem;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: white;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.04em;
+    }
+
+    .example-btn:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+    .btn-analyze {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 12px 28px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-analyze:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ── Loading ── */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 48px;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .loading.visible { display: block; }
+
+    .loading-dots span {
+      display: inline-block;
+      width: 8px; height: 8px;
+      background: var(--ink);
+      border-radius: 50%;
+      margin: 0 3px;
+      animation: bounce 1.2s ease infinite;
+    }
+
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+    }
+
+    .loading p {
+      margin-top: 16px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Results ── */
+    #results {
+      display: none;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    #results.visible { display: block; }
+
+    .score-banner {
+      background: var(--ink);
+      color: var(--bg);
+      border-radius: 8px;
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 24px;
+    }
+
+    .score-left h2 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 1.3rem;
+      margin-bottom: 6px;
+      font-weight: 400;
+    }
+
+    .score-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    .score-circle {
+      width: 88px; height: 88px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .score-number {
+      font-family: 'Instrument Serif', serif;
+      font-size: 2rem;
+      line-height: 1;
+    }
+
+    .score-denom {
+      font-size: 0.6rem;
+      opacity: 0.5;
+      letter-spacing: 0.1em;
+    }
+
+    /* score ring */
+    .score-ring {
+      position: absolute;
+      top: -3px; left: -3px;
+      width: 88px; height: 88px;
+    }
+
+    .ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 3; }
+    .ring-fill { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round;
+      transform: rotate(-90deg); transform-origin: center;
+      transition: stroke-dashoffset 1s ease; }
+
+    /* Cards grid */
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 600px) { .cards { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .card-title {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .dot-red { background: var(--accent); }
+    .dot-green { background: var(--accent2); }
+    .dot-blue { background: var(--accent3); }
+    .dot-amber { background: #c47a0a; }
+
+    .card-body {
+      font-size: 0.8rem;
+      line-height: 1.7;
+      color: var(--ink);
+    }
+
+    .card-body ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .card-body ul li::before {
+      content: '→ ';
+      color: var(--muted);
+    }
+
+    .card.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .improved-prompt {
+      font-size: 0.8rem;
+      line-height: 1.75;
+      background: var(--tag-bg);
+      border-radius: 6px;
+      padding: 16px;
+      color: var(--ink);
+      border-left: 3px solid var(--accent2);
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.62rem;
+      padding: 4px 10px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover { background: var(--ink); color: white; border-color: var(--ink); }
+
+    .reset-row {
+      text-align: center;
+      margin-top: 32px;
+    }
+
+    .btn-reset {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.72rem;
+      padding: 10px 22px;
+      background: transparent;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.2s;
+      letter-spacing: 0.06em;
+    }
+
+    .btn-reset:hover { border-color: var(--ink); color: var(--ink); }
+
+    /* ── Error ── */
+    .error-box {
+      display: none;
+      background: #fff0ee;
+      border: 1.5px solid #f0c0b8;
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-size: 0.78rem;
+      color: var(--accent);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .error-box.visible { display: block; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 32px;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-name">PromptLens</span>
+    <span class="logo-tag">Beta</span>
+  </div>
+  <span class="header-pill">AI Prompt Analyzer · Built by Gregoire</span>
+</header>
+
+<main>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>Write prompts that<br/><em>actually work.</em></h1>
+    <p>Paste any AI prompt. Get an instant analysis of its clarity, specificity, and structure — plus a smarter rewrite ready to copy.</p>
+  </div>
+
+  <!-- API Key -->
+  <div class="api-section">
+    <label>🔑 Anthropic API Key</label>
+    <div class="api-row">
+      <input type="password" id="apiKey" placeholder="sk-ant-api03-..." />
+      <button class="btn-save" onclick="saveKey()">Save</button>
+    </div>
+    <p class="api-hint">Your key is stored only in your browser. Get one free at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+  </div>
+
+  <!-- Input -->
+  <div class="input-section">
+    <div class="input-label-row">
+      <span class="input-label">Your Prompt</span>
+      <span class="char-count" id="charCount">0 chars</span>
+    </div>
+    <textarea id="promptInput" placeholder="Paste your AI prompt here…&#10;&#10;e.g. &quot;Write a blog post about marketing.&quot;"></textarea>
+    <div class="input-footer">
+      <div class="example-prompts">
+        <span style="font-size:0.65rem;color:var(--muted);letter-spacing:0.06em;">Try:</span>
+        <button class="example-btn" onclick="loadExample(0)">Vague prompt</button>
+        <button class="example-btn" onclick="loadExample(1)">Medium prompt</button>
+        <button class="example-btn" onclick="loadExample(2)">Good prompt</button>
+      </div>
+      <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">
+        <span>Analyze</span>
+        <span>→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+    <p>Analyzing your prompt…</p>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <div class="score-banner">
+      <div class="score-left">
+        <p class="score-label">Overall Score</p>
+        <h2 id="scoreLabel">—</h2>
+        <p id="scoreSummary" style="font-size:0.78rem;opacity:0.7;margin-top:4px;line-height:1.5;max-width:380px;"></p>
+      </div>
+      <div class="score-circle">
+        <svg class="score-ring" viewBox="0 0 88 88">
+          <circle class="ring-bg" cx="44" cy="44" r="40"/>
+          <circle class="ring-fill" id="ringFill" cx="44" cy="44" r="40"
+            stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+        </svg>
+        <span class="score-number" id="scoreNum">—</span>
+        <span class="score-denom">/100</span>
+      </div>
+    </div>
+
+    <div class="cards">
+      <!-- Strengths -->
+      <div class="card">
+        <div class="card-title"><div class="dot dot-green"></div>Strengths</div>
+        <div class="card-body"><ul id="strengthsList"></ul></div>
+      </div>
+
+      <!-- Weaknesses -->
+      <div class="card">
+        <div class="card-title"><div class="dot dot-red"></div>Weaknesses</div>
+        <div class="card-body"><ul id="weaknessesList"></ul></div>
+      </div>
+
+      <!-- Dimensions -->
+      <div class="card">
+        <div class="card-title"><div class="dot dot-blue"></div>Dimension Scores</div>
+        <div class="card-body" id="dimensionsList"></div>
+      </div>
+
+      <!-- Tips -->
+      <div class="card">
+        <div class="card-title"><div class="dot dot-amber"></div>Quick Tips</div>
+        <div class="card-body"><ul id="tipsList"></ul></div>
+      </div>
+
+      <!-- Improved prompt -->
+      <div class="card full-width">
+        <div class="card-title">✦ Improved Prompt</div>
+        <div style="position:relative;">
+          <div class="improved-prompt" id="improvedPrompt"></div>
+          <button class="copy-btn" onclick="copyImproved()">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="reset-row">
+      <button class="btn-reset" onclick="reset()">← Analyze another prompt</button>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  PromptLens · Built with HTML, CSS, JS + Claude API · by Gregoire
+</footer>
+
+<script>
+  const EXAMPLES = [
+    `Write a blog post about marketing.`,
+    `Write a short blog post about email marketing for small businesses. Include some tips.`,
+    `You are a content strategist writing for a B2B SaaS audience. Write a 600-word blog post about email marketing best practices for small e-commerce businesses. Include 5 actionable tips, a real-world example, and end with a clear call-to-action. Tone: practical, friendly, not salesy.`
+  ];
+
+  let savedKey = localStorage.getItem('pl_key') || '';
+  if (savedKey) document.getElementById('apiKey').value = savedKey;
+
+  document.getElementById('promptInput').addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length + ' chars';
+  });
+
+  function loadExample(i) {
+    const ta = document.getElementById('promptInput');
+    ta.value = EXAMPLES[i];
+    ta.dispatchEvent(new Event('input'));
+  }
+
+  function saveKey() {
+    const k = document.getElementById('apiKey').value.trim();
+    if (k) { localStorage.setItem('pl_key', k); savedKey = k; alert('Key saved!'); }
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = '⚠ ' + msg;
+    box.classList.add('visible');
+  }
+
+  function hideError() {
+    document.getElementById('errorBox').classList.remove('visible');
+  }
+
+  async function analyze() {
+    const key = document.getElementById('apiKey').value.trim() || savedKey;
+    const prompt = document.getElementById('promptInput').value.trim();
+
+    hideError();
+
+    if (!key) { showError('Please enter your Anthropic API key above.'); return; }
+    if (!prompt) { showError('Please enter a prompt to analyze.'); return; }
+
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('loading').classList.add('visible');
+    document.getElementById('results').classList.remove('visible');
+
+    const systemPrompt = `You are an expert AI prompt engineer. Analyze the given prompt and respond with ONLY a valid JSON object (no markdown, no explanation).
+
+The JSON must have this exact structure:
+{
+  "score": <integer 0-100>,
+  "label": "<short verdict like 'Needs Work', 'Decent', 'Strong', 'Excellent'>",
+  "summary": "<2 sentence overall summary>",
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "weaknesses": ["<weakness 1>", "<weakness 2>"],
+  "dimensions": {
+    "Clarity": <0-100>,
+    "Specificity": <0-100>,
+    "Context": <0-100>,
+    "Structure": <0-100>
+  },
+  "tips": ["<tip 1>", "<tip 2>", "<tip 3>"],
+  "improved": "<the improved version of the prompt>"
+}`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: `Analyze this prompt:\n\n${prompt}` }]
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error.message);
+
+      const raw = data.content[0].text.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(raw);
+      renderResults(parsed);
+
+    } catch (err) {
+      showError('Error: ' + err.message + '. Check your API key and try again.');
+    } finally {
+      document.getElementById('analyzeBtn').disabled = false;
+      document.getElementById('loading').classList.remove('visible');
+    }
+  }
+
+  function renderResults(d) {
+    // Score
+    document.getElementById('scoreNum').textContent = d.score;
+    document.getElementById('scoreLabel').textContent = d.label;
+    document.getElementById('scoreSummary').textContent = d.summary;
+
+    // Ring animation
+    const circumference = 251.2;
+    const offset = circumference - (d.score / 100) * circumference;
+    setTimeout(() => {
+      document.getElementById('ringFill').style.strokeDashoffset = offset;
+    }, 100);
+
+    // Lists
+    const sl = document.getElementById('strengthsList');
+    sl.innerHTML = d.strengths.map(s => `<li>${s}</li>`).join('');
+
+    const wl = document.getElementById('weaknessesList');
+    wl.innerHTML = d.weaknesses.map(w => `<li>${w}</li>`).join('');
+
+    const tl = document.getElementById('tipsList');
+    tl.innerHTML = d.tips.map(t => `<li>${t}</li>`).join('');
+
+    // Dimensions
+    const dl = document.getElementById('dimensionsList');
+    dl.innerHTML = Object.entries(d.dimensions).map(([k, v]) => `
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;margin-bottom:5px;">
+          <span>${k}</span><span style="color:var(--muted)">${v}/100</span>
+        </div>
+        <div style="height:5px;background:var(--tag-bg);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${v}%;background:var(--ink);border-radius:3px;transition:width 0.8s ease;"></div>
+        </div>
+      </div>
+    `).join('');
+
+    // Improved
+    document.getElementById('improvedPrompt').textContent = d.improved;
+
+    document.getElementById('results').classList.add('visible');
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function copyImproved() {
+    const text = document.getElementById('improvedPrompt').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  }
+
+  function reset() {
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('promptInput').value = '';
+    document.getElementById('charCount').textContent = '0 chars';
+    document.getElementById('ringFill').style.strokeDashoffset = '251.2';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
